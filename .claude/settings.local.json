@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(pip install *)",
-      "Bash(python -m pytest src/agent_labs/tests/ -v --tb=short)"
+      "Bash(python -m pytest src/agent_labs/tests/ -v --tb=short)",
+      "Bash(uv --version)",
+      "Bash(uv lock *)",
+      "Bash(uv sync *)",
+      "Bash(uv run *)"
     ]
   }
 }

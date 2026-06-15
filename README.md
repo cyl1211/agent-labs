@@ -1,27 +1,88 @@
-## agent学习项目需求
-本项目是一个基于langgraph开发的agent学习项目，需要包括agent项目的最新概念、工具和工程实践。虽然用于学习，但要尽可能贴近真实生产级项目。
+# Agent-Labs
+
+基于 **LangGraph + FastAPI** 的生产级 Agent 学习项目，涵盖现代 Agent 系统的核心技术概念和工程实践。
 
 ## 技术栈
- - 平台：linux or windows
- - 语言：Python
- - 框架：Langgraph，fastapi
 
-## 本项目涉及关键技术
-- loops：自动循环，自主化，错误处理，终止条件，agent模式设计
-- 模型管理：多平台模型管理，模型切换，模型权限管理
-- tools：关键工具调用，调用失败处理，工具注册，加载策略，工具权限管理
-- skills：技能调用，多个技能选择逻辑，失败处理，skill权限管理
-- mcp接入：接入管理，动态加载
-- memory：多层记忆架构设计，关键数据存储，定期垃圾回收
-- 上下文工程：合理的上下文传递，动态知识注入
-- 可观测性：agent节点可观测，token 使用量监控，错误信号回传
-- 多agent系统：分工合理，功能明确，分层依赖模型（决策agent依赖强模型，干活agent依赖弱模型），子agent独立上下文、独立agent loop
-- 10小时以上长任务规划处理
-- 关键环节依赖人工确认
-- 通知机制：通过邮件等方式，关键节点通知，错误信号回传，任务完成通知
-- 安全管理：agent执行沙箱管理，数据权限管理，任务权限管理，任务执行超时管理
-- 测试：agent测试，自动测试 CI 验证，错误信号回传
-- RAG系统设计：数据规划设计
+| 类别 | 技术 |
+|------|------|
+| 平台 | Linux / Windows |
+| 语言 | Python >= 3.11 |
+| Agent 框架 | LangGraph |
+| API 框架 | FastAPI |
+| 环境管理 | [uv](https://github.com/astral-sh/uv) |
+| 模型支持 | Anthropic Claude, OpenAI |
 
-## 项目要求
-项目中的agent、session状态（agent运行时）、memory都需要解耦设计，可以接入其它agent系统
+## 快速开始
+
+```bash
+# 1. 安装 uv
+pip install uv
+
+# 2. 克隆并同步依赖
+git clone https://github.com/cyl1211/agent-labs.git
+cd agent-labs
+uv sync
+
+# 3. 设置 API Key
+export ANTHROPIC_API_KEY="your-api-key"
+
+# 4. 启动服务
+python -m agent_labs --reload
+
+# 5. 访问 API 文档
+# http://localhost:8000/docs
+```
+
+## 项目结构
+
+```
+agent-labs/
+├── config/              # YAML 配置 (模型、工具、权限)
+├── docs/                # 详细文档
+│   ├── architecture.md  #   架构设计
+│   ├── development.md   #   开发指南
+│   └── api.md           #   API 参考
+└── src/agent_labs/
+    ├── core/            # 抽象接口层 (Agent/Session/Memory 解耦)
+    ├── agents/          # Agent 实现 (ReAct)
+    ├── models/          # 多平台模型管理
+    ├── tools/           # 工具系统 (注册、执行、重试、超时)
+    ├── sessions/        # 会话状态管理
+    ├── memory/          # 四层记忆架构
+    ├── graph/           # LangGraph 图 (State, Nodes, Builder)
+    ├── api/             # FastAPI 路由与中间件
+    └── tests/           # 单元测试 & 集成测试
+```
+
+## 核心特性
+
+- **三层解耦**: Agent / Session / Memory 通过抽象接口独立，可接入其他 Agent 系统
+- **多模型管理**: 统一的模型管理器，支持 strong/weak 分层策略
+- **工具系统**: 工具注册、执行重试、超时控制、批量并行
+- **四层记忆**: Working / Episodic / Semantic / Procedural
+- **LangGraph 循环**: ReAct 模式，11 个节点，条件路由
+- **跨平台**: Windows / Linux 双平台支持
+
+## 开发阶段
+
+| 阶段 | 内容 | 状态 |
+|------|------|------|
+| Phase 1 | 项目基础 + 单 Agent 核心 | ✅ |
+| Phase 2 | 工具 + 技能 + 权限系统 | 🔜 |
+| Phase 3 | 记忆系统 + 上下文工程 + RAG | 📋 |
+| Phase 4 | 多 Agent + Human-in-the-Loop + 通知 | 📋 |
+| Phase 5 | MCP + 可观测性 + 长任务 | 📋 |
+| Phase 6 | 安全 + 测试 + 生产加固 | 📋 |
+
+## 文档
+
+- [架构设计](docs/architecture.md) — 三层解耦、LangGraph 图、数据流
+- [开发指南](docs/development.md) — uv 使用、环境变量、添加新模块
+- [API 参考](docs/api.md) — 所有端点、请求/响应示例
+
+## 测试
+
+```bash
+pytest src/agent_labs/tests/ -v
+```
