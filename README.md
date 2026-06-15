@@ -2,6 +2,7 @@
 本项目是一个基于langgraph开发的agent学习项目，需要包括agent项目的最新概念、工具和工程实践。虽然用于学习，但要尽可能贴近真实生产级项目。
 
 ## 技术栈
+ - 平台：linux or windows
  - 语言：Python
  - 框架：Langgraph，fastapi
 

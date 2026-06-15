@@ -1,0 +1,93 @@
+# Agent-Labs 默认配置
+# 可通过环境变量 AGENT_LABS_ENV=production|development 切换
+
+app:
+  name: "agent-labs"
+  version: "0.1.0"
+  debug: true
+  host: "0.0.0.0"
+  port: 8000
+
+# 模型配置 (详见 models.yaml)
+models:
+  default_provider: "anthropic"
+  providers:
+    anthropic:
+      api_key_env: "ANTHROPIC_API_KEY"
+      default_model: "claude-sonnet-4-6"
+    openai:
+      api_key_env: "OPENAI_API_KEY"
+      default_model: "gpt-4o"
+
+# Agent 配置
+agent:
+  # 最大循环迭代次数
+  max_iterations: 25
+  # 默认循环模式: react | plan_execute | supervisor
+  default_loop: "react"
+  # 终止条件
+  termination:
+    max_timeout_seconds: 300
+    max_tool_calls: 15
+    stop_phrases: ["TASK_COMPLETE", "FINAL_ANSWER"]
+
+# 会话配置
+session:
+  # 会话过期时间 (秒)
+  ttl_seconds: 3600
+  # 持久化后端: sqlite | memory
+  backend: "sqlite"
+  # 最大并发会话数
+  max_concurrent: 100
+
+# 记忆配置
+memory:
+  # 工作记忆最大消息数
+  working_max_messages: 50
+  # 情景记忆最大条目
+  episodic_max_entries: 1000
+  # 语义记忆向量维度
+  semantic_dimension: 1536
+  # 垃圾回收间隔 (秒)
+  gc_interval_seconds: 3600
+  # 记忆 TTL (秒) - 过期自动回收
+  ttl_seconds:
+    working: 3600
+    episodic: 86400
+    semantic: 604800
+
+# 上下文配置
+context:
+  # 最大上下文 token 数 (留给模型的空间)
+  max_tokens: 100000
+  # 是否启用上下文压缩
+  compression_enabled: true
+  # 压缩触发阈值 (消息数)
+  compression_threshold: 30
+
+# 安全配置
+security:
+  # 沙箱类型: process | docker
+  sandbox_mode: "process"
+  # 工具执行超时 (秒)
+  tool_timeout_seconds: 60
+  # 任务执行超时 (秒)
+  task_timeout_seconds: 36000
+
+# 通知配置
+notifications:
+  email:
+    enabled: false
+    smtp_host: ""
+    smtp_port: 587
+    smtp_user: ""
+    smtp_password_env: "SMTP_PASSWORD"
+
+# 可观测性
+observability:
+  # 启用 token 计数
+  token_tracking: true
+  # 启用节点级追踪
+  node_tracing: true
+  # 日志级别
+  log_level: "INFO"

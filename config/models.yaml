@@ -1,0 +1,55 @@
+# 模型提供商标识与权限配置
+# 决策 agent 使用 strong 标签模型，执行 agent 使用 weak 标签模型
+
+providers:
+  anthropic:
+    base_url: "https://api.anthropic.com"
+    models:
+      - id: "claude-opus-4-8"
+        display_name: "Claude Opus 4.8"
+        tier: strong
+        max_tokens: 200000
+        supports_vision: true
+        cost_per_1k_input: 0.015
+        cost_per_1k_output: 0.075
+      - id: "claude-sonnet-4-6"
+        display_name: "Claude Sonnet 4.6"
+        tier: strong
+        max_tokens: 200000
+        supports_vision: true
+        cost_per_1k_input: 0.003
+        cost_per_1k_output: 0.015
+      - id: "claude-haiku-4-5"
+        display_name: "Claude Haiku 4.5"
+        tier: weak
+        max_tokens: 200000
+        supports_vision: false
+        cost_per_1k_input: 0.0008
+        cost_per_1k_output: 0.004
+
+  openai:
+    base_url: "https://api.openai.com/v1"
+    models:
+      - id: "gpt-4o"
+        display_name: "GPT-4o"
+        tier: strong
+        max_tokens: 128000
+        supports_vision: true
+        cost_per_1k_input: 0.0025
+        cost_per_1k_output: 0.01
+      - id: "gpt-4o-mini"
+        display_name: "GPT-4o Mini"
+        tier: weak
+        max_tokens: 128000
+        supports_vision: true
+        cost_per_1k_input: 0.00015
+        cost_per_1k_output: 0.0006
+
+# 模型选择策略
+selection:
+  # orchestrator agent 使用 strong 模型
+  orchestrator_tier: strong
+  # worker agent 使用 weak 模型
+  worker_tier: weak
+  # 工具调用偏好 strong 模型 (结构输出更准确)
+  tool_calling_tier: strong

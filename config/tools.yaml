@@ -1,0 +1,63 @@
+# 工具注册配置
+# 每个工具可配置权限级别、超时、重试策略
+
+tools:
+  # ---- 文件系统工具 ----
+  - name: "read_file"
+    description: "读取文件内容"
+    permission_level: read
+    timeout_seconds: 30
+    retry_count: 2
+    enabled: true
+
+  - name: "write_file"
+    description: "写入文件"
+    permission_level: write
+    timeout_seconds: 30
+    retry_count: 1
+    enabled: true
+    require_approval: true  # 需人工确认
+
+  - name: "list_directory"
+    description: "列出目录内容"
+    permission_level: read
+    timeout_seconds: 15
+    retry_count: 2
+    enabled: true
+
+  # ---- 网络工具 ----
+  - name: "web_search"
+    description: "网络搜索"
+    permission_level: read
+    timeout_seconds: 30
+    retry_count: 3
+    enabled: true
+
+  - name: "web_fetch"
+    description: "获取网页内容"
+    permission_level: read
+    timeout_seconds: 30
+    retry_count: 2
+    enabled: true
+
+  # ---- 命令执行 ----
+  - name: "execute_command"
+    description: "执行系统命令"
+    permission_level: execute
+    timeout_seconds: 120
+    retry_count: 0
+    enabled: true
+    require_approval: true  # 需人工确认
+    sandbox_required: true   # 需沙箱执行
+
+# 权限级别定义
+permission_levels:
+  read:
+    description: "只读操作，不修改系统状态"
+    auto_approve: true
+  write:
+    description: "写入操作，修改文件系统"
+    auto_approve: false
+  execute:
+    description: "执行操作，运行代码或命令"
+    auto_approve: false
