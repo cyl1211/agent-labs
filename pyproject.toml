@@ -13,6 +13,10 @@ dev-dependencies = [
     "mypy>=1.0",
 ]
 
+[[tool.uv.index]]
+url = "https://mirrors.aliyun.com/pypi/simple"
+default = true
+
 [project]
 name = "agent-labs"
 version = "0.1.0"
