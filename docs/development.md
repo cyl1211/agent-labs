@@ -92,11 +92,11 @@ agent-labs/
 | 阶段 | 内容 | 状态 |
 |------|------|------|
 | Phase 1 | 项目基础 + 单 Agent 核心 + FastAPI | ✅ 完成 |
-| Phase 2 | 工具 + 技能 + 权限系统 | 🔜 待开始 |
-| Phase 3 | 记忆系统 + 上下文工程 + RAG | 📋 计划中 |
-| Phase 4 | 多 Agent + Human-in-the-Loop + 通知 | 📋 计划中 |
-| Phase 5 | MCP + 可观测性 + 长任务 | 📋 计划中 |
-| Phase 6 | 安全 + 测试 + 生产加固 | 📋 计划中 |
+| Phase 2 | 工具 + 技能 + 权限系统 | ✅ 完成 |
+| Phase 3 | 记忆系统 + 上下文工程 + RAG | ✅ 完成 |
+| Phase 4 | 多 Agent + Human-in-the-Loop + 通知 | ✅ 学习实现 |
+| Phase 5 | MCP + 可观测性 + 长任务 | ✅ 学习实现 |
+| Phase 6 | 安全 + 测试 + 生产加固 | 🚧 持续完善 |
 
 ## 测试策略
 
@@ -110,6 +110,8 @@ pytest src/agent_labs/tests/integration/ -v
 # 全部测试
 pytest src/agent_labs/tests/ -v
 ```
+
+当前基线：250 passed，1 skipped（Python 3.12）。
 
 ## 添加新 Agent 模式
 

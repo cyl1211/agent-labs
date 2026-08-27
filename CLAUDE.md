@@ -10,7 +10,8 @@
 ## 常用命令
 ```bash
 uv sync                    # 安装依赖
-python -m agent_labs       # 启动服务
+python -m agent_labs       # 启动 API 服务
+python -m agent_labs chat  # 启动 CLI 交互聊天
 pytest src/agent_labs/tests/ -v  # 测试
 ruff check src/ && ruff format src/  # 代码检查
 ```

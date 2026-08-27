@@ -57,7 +57,9 @@ class BaseMemory(ABC):
         ...
 
     @abstractmethod
-    async def search(self, query: str, top_k: int = 5, layer: str | None = None) -> list[MemoryEntry]:
+    async def search(
+        self, query: str, top_k: int = 5, layer: str | None = None
+    ) -> list[MemoryEntry]:
         """
         语义搜索记忆（基于 embedding 相似度）
 

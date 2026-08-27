@@ -12,7 +12,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
-from ..deps import get_tool_executor, get_tool_registry
+from ..deps import get_tool_executor
 
 router = APIRouter()
 

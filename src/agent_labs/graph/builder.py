@@ -11,7 +11,6 @@ LangGraph 图构建器
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
@@ -38,7 +37,9 @@ class GraphBuilder:
         self.nodes = nodes
         self._checkpointer = MemorySaver()
 
-    def build_react_graph(self, enable_human_loop: bool = False) -> StateGraph:
+    def build_react_graph(
+        self, enable_human_loop: bool = False, enable_skill_node: bool = False
+    ) -> StateGraph:
         """
         构建 ReAct (Reasoning + Acting) 循环图
 
@@ -69,6 +70,9 @@ class GraphBuilder:
         if enable_human_loop:
             workflow.add_node("human", self.nodes.human_node)
 
+        if enable_skill_node:
+            workflow.add_node("skill", self.nodes.skill_node)
+
         # 入口
         workflow.set_entry_point("input")
 
@@ -77,16 +81,22 @@ class GraphBuilder:
         workflow.add_edge("context", "decide")
 
         # decide 条件路由
+        route_map = {
+            "tool": "tool",
+            "skill": "skill" if enable_skill_node else "tool",
+            "human": "human" if enable_human_loop else "output",
+            "answer": "output",
+            "error": "error",
+        }
         workflow.add_conditional_edges(
             "decide",
             self._route_after_decide,
-            {
-                "tool": "tool",
-                "human": "human" if enable_human_loop else "output",
-                "answer": "output",
-                "error": "error",
-            },
+            route_map,
         )
+
+        # skill → memory → loop (技能执行完成后也走记忆+循环)
+        if enable_skill_node:
+            workflow.add_edge("skill", "memory")
 
         # tool → memory → loop
         workflow.add_edge("tool", "memory")
@@ -221,9 +231,12 @@ class GraphBuilder:
 
         if next_action == "tool_call":
             return "tool"
+        elif next_action == "call_skill":
+            return "skill"
+        elif next_action == "ask_human":
+            return "human"
         elif next_action == "answer":
             content = state.get("current_thought", "")
-            # 检查是否需要人工确认
             if "APPROVAL_NEEDED" in content:
                 return "human"
             return "answer"

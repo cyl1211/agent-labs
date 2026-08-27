@@ -5,7 +5,8 @@ OpenAI 模型提供商适配器
 from __future__ import annotations
 
 import logging
-from typing import Any, AsyncIterator
+from collections.abc import AsyncIterator
+from typing import Any
 
 from openai import AsyncOpenAI
 
@@ -31,14 +32,16 @@ class OpenAIProvider(BaseModelProvider):
     def _convert_tools(self, tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
         converted = []
         for tool in tools:
-            converted.append({
-                "type": "function",
-                "function": {
-                    "name": tool.get("name", ""),
-                    "description": tool.get("description", ""),
-                    "parameters": tool.get("parameters", {}),
-                },
-            })
+            converted.append(
+                {
+                    "type": "function",
+                    "function": {
+                        "name": tool.get("name", ""),
+                        "description": tool.get("description", ""),
+                        "parameters": tool.get("parameters", {}),
+                    },
+                }
+            )
         return converted
 
     async def chat(
@@ -67,12 +70,15 @@ class OpenAIProvider(BaseModelProvider):
             tool_calls = []
             if msg.tool_calls:
                 for tc in msg.tool_calls:
-                    tool_calls.append({
-                        "id": tc.id,
-                        "name": tc.function.name,
-                        "args": tc.function.arguments if isinstance(tc.function.arguments, dict)
-                                else __import__("json").loads(tc.function.arguments),
-                    })
+                    tool_calls.append(
+                        {
+                            "id": tc.id,
+                            "name": tc.function.name,
+                            "args": tc.function.arguments
+                            if isinstance(tc.function.arguments, dict)
+                            else __import__("json").loads(tc.function.arguments),
+                        }
+                    )
 
             return {
                 "role": "assistant",
@@ -134,6 +140,7 @@ class OpenAIProvider(BaseModelProvider):
 
     async def count_tokens(self, messages: list[dict[str, Any]], model: str) -> int:
         import tiktoken
+
         try:
             enc = tiktoken.encoding_for_model(model)
         except KeyError:

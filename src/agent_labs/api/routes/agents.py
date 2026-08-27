@@ -122,7 +122,9 @@ async def stream_agent(websocket: WebSocket) -> None:
         raw = await websocket.receive_json()
         query = raw.get("query", "")
         if not query:
-            await websocket.send_json({"event_type": "error", "data": {"message": "query is required"}})
+            await websocket.send_json(
+                {"event_type": "error", "data": {"message": "query is required"}}
+            )
             await websocket.close()
             return
 
@@ -131,7 +133,12 @@ async def stream_agent(websocket: WebSocket) -> None:
         if session_id:
             existing_state = await session_manager.get_state(session_id)
             if not existing_state:
-                await websocket.send_json({"event_type": "error", "data": {"message": f"Session not found: {session_id}"}})
+                await websocket.send_json(
+                    {
+                        "event_type": "error",
+                        "data": {"message": f"Session not found: {session_id}"},
+                    }
+                )
                 await websocket.close()
                 return
         else:

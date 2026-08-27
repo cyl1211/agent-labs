@@ -8,8 +8,6 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-from typing import Any
 
 from ..core.base_session import BaseSession
 from ..core.types import (
@@ -38,9 +36,7 @@ class SessionManager(BaseSession):
         self._sessions: dict[str, SessionState] = {}
         self._checkpoints: dict[str, dict[str, dict]] = {}  # session_id -> {name: data}
 
-    async def create(
-        self, agent_id: str, config: SessionConfig | None = None
-    ) -> str:
+    async def create(self, agent_id: str, config: SessionConfig | None = None) -> str:
         config = config or SessionConfig()
         session_id = new_id()
         state = SessionState(
@@ -78,7 +74,8 @@ class SessionManager(BaseSession):
         messages = session.messages
         if before_message_id:
             messages = [
-                m for m in messages
+                m
+                for m in messages
                 if m.id < before_message_id  # 按 ID 字典序过滤
             ]
 

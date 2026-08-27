@@ -27,11 +27,13 @@ class AppSettings(BaseModel):
 class AgentSettings(BaseModel):
     max_iterations: int = 25
     default_loop: str = "react"
-    termination: dict[str, Any] = Field(default_factory=lambda: {
-        "max_timeout_seconds": 300,
-        "max_tool_calls": 15,
-        "stop_phrases": ["TASK_COMPLETE", "FINAL_ANSWER"],
-    })
+    termination: dict[str, Any] = Field(
+        default_factory=lambda: {
+            "max_timeout_seconds": 300,
+            "max_tool_calls": 15,
+            "stop_phrases": ["TASK_COMPLETE", "FINAL_ANSWER"],
+        }
+    )
 
 
 class SessionSettings(BaseModel):
@@ -45,11 +47,13 @@ class MemorySettings(BaseModel):
     episodic_max_entries: int = 1000
     semantic_dimension: int = 1536
     gc_interval_seconds: int = 3600
-    ttl_seconds: dict[str, int] = Field(default_factory=lambda: {
-        "working": 3600,
-        "episodic": 86400,
-        "semantic": 604800,
-    })
+    ttl_seconds: dict[str, int] = Field(
+        default_factory=lambda: {
+            "working": 3600,
+            "episodic": 86400,
+            "semantic": 604800,
+        }
+    )
 
 
 class ContextSettings(BaseModel):
@@ -89,6 +93,7 @@ class ObservabilitySettings(BaseModel):
 
 class Settings(BaseModel):
     """聚合所有配置"""
+
     app: AppSettings = Field(default_factory=AppSettings)
     agent: AgentSettings = Field(default_factory=AgentSettings)
     session: SessionSettings = Field(default_factory=SessionSettings)
@@ -101,7 +106,7 @@ class Settings(BaseModel):
     tools_config: dict[str, Any] = Field(default_factory=dict)
 
     @classmethod
-    def from_yaml(cls, config_dir: str | Path) -> "Settings":
+    def from_yaml(cls, config_dir: str | Path) -> Settings:
         """从 YAML 配置目录加载所有配置"""
         config_dir = Path(config_dir)
         merged: dict[str, Any] = {}
@@ -109,7 +114,7 @@ class Settings(BaseModel):
         for file_name in ("default.yaml", "models.yaml", "tools.yaml"):
             file_path = config_dir / file_name
             if file_path.exists():
-                with open(file_path, "r", encoding="utf-8") as f:
+                with open(file_path, encoding="utf-8") as f:
                     data = yaml.safe_load(f) or {}
                 merged.update(data)
 

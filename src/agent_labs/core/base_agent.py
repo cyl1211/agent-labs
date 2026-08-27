@@ -8,7 +8,7 @@ Agent 通过 AgentContext 获取运行时信息，不直接依赖 Session/Memory
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 from .types import AgentContext, AgentEvent, AgentInput, AgentOutput
 

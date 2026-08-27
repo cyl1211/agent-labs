@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 from langgraph.errors import GraphRecursionError
 
@@ -28,7 +28,6 @@ from ..core.types import (
     Message,
     Role,
     new_id,
-    utc_now,
 )
 from ..graph.builder import GraphBuilder
 from ..graph.nodes import GraphNodes
@@ -69,12 +68,41 @@ class ReactAgent(BaseAgent):
         self.max_iterations = max_iterations
         self._graph = None
 
+        # 可注入的服务（由 deps.py 的 get_react_agent 设置）
+        self.tracer = None
+        self.token_monitor = None
+        self.context_builder = None
+        self.context_compressor = None
+        self.knowledge_injector = None
+        self.approval_manager = None
+        self.email_notifier = None
+        self.timeout_manager = None
+        self.skill_executor = None
+
     def _get_graph(self, enable_human_loop: bool = False):
         """懒加载编译好的 LangGraph 图"""
         if self._graph is None:
-            nodes = GraphNodes(self.model_manager, self.tool_executor)
+            from ..api.deps import get_memory_manager
+
+            nodes = GraphNodes(
+                self.model_manager,
+                self.tool_executor,
+                context_builder=self.context_builder,
+                context_compressor=self.context_compressor,
+                knowledge_injector=self.knowledge_injector,
+                tracer=self.tracer,
+                token_monitor=self.token_monitor,
+                approval_manager=self.approval_manager,
+                email_notifier=self.email_notifier,
+                timeout_manager=self.timeout_manager,
+                skill_executor=self.skill_executor,
+                memory_manager=get_memory_manager(),
+            )
             builder = GraphBuilder(nodes)
-            self._graph = builder.build_react_graph(enable_human_loop=enable_human_loop)
+            self._graph = builder.build_react_graph(
+                enable_human_loop=enable_human_loop,
+                enable_skill_node=self.skill_executor is not None,
+            )
         return self._graph
 
     async def invoke(
@@ -129,11 +157,13 @@ class ReactAgent(BaseAgent):
         tool_calls_made = []
         for msg in final_state.get("messages", []):
             if isinstance(msg, Message) and msg.role == Role.TOOL:
-                tool_calls_made.append({
-                    "name": msg.tool_name,
-                    "success": msg.metadata.get("success", False),
-                    "duration_ms": msg.metadata.get("duration_ms", 0),
-                })
+                tool_calls_made.append(
+                    {
+                        "name": msg.tool_name,
+                        "success": msg.metadata.get("success", False),
+                        "duration_ms": msg.metadata.get("duration_ms", 0),
+                    }
+                )
 
         return AgentOutput(
             session_id=session_id,

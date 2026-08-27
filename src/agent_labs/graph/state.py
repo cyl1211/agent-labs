@@ -94,20 +94,39 @@ class GraphState(dict):
         pending_approval: dict[str, Any] | None = None,
         metadata: dict[str, Any] | None = None,
     ):
-        self.messages = messages or []
-        self.input = input or AgentInput(query="")
-        self.context = context or AgentContext(session_id="")
+        # 同时存储为 dict item (供节点 `state["key"]` 访问) 和属性
+        _messages = messages or []
+        _input = input or AgentInput(query="")
+        _context = context or AgentContext(session_id="")
+        dict.__setitem__(self, "messages", _messages)
+        dict.__setitem__(self, "input", _input)
+        dict.__setitem__(self, "context", _context)
+        dict.__setitem__(self, "current_thought", current_thought)
+        dict.__setitem__(self, "next_action", next_action)
+        dict.__setitem__(self, "pending_tool_calls", pending_tool_calls or [])
+        dict.__setitem__(self, "tool_results", tool_results or {})
+        dict.__setitem__(self, "iteration", iteration)
+        dict.__setitem__(self, "tokens_used", tokens_used)
+        dict.__setitem__(self, "should_continue", should_continue)
+        dict.__setitem__(self, "error", error)
+        dict.__setitem__(self, "output", output)
+        dict.__setitem__(self, "pending_approval", pending_approval)
+        dict.__setitem__(self, "metadata", metadata or {})
+        # 同时保留属性访问以兼容旧代码
+        self.messages = _messages
+        self.input = _input
+        self.context = _context
         self.current_thought = current_thought
         self.next_action = next_action
-        self.pending_tool_calls = pending_tool_calls or []
-        self.tool_results = tool_results or {}
+        self.pending_tool_calls = self["pending_tool_calls"]
+        self.tool_results = self["tool_results"]
         self.iteration = iteration
         self.tokens_used = tokens_used
         self.should_continue = should_continue
         self.error = error
         self.output = output
         self.pending_approval = pending_approval
-        self.metadata = metadata or {}
+        self.metadata = self["metadata"]
 
 
 def create_initial_state(input: AgentInput, context: AgentContext) -> GraphState:

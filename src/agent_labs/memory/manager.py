@@ -8,16 +8,17 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from ..core.base_memory import BaseMemory
 from ..core.types import (
     MemoryEntry,
-    MemoryLayer,
     MemoryQuery,
-    new_id,
     utc_now,
 )
+from .layers.episodic import EpisodicMemory
+from .layers.procedural import ProceduralMemory
+from .layers.semantic import SemanticMemory
+from .layers.working import WorkingMemory
 
 logger = logging.getLogger(__name__)
 
@@ -26,143 +27,195 @@ class MemoryManager(BaseMemory):
     """
     内置记忆管理器
 
-    四层记忆：
-    1. working: 内存列表，快速读写，会话级
-    2. episodic: 带嵌入的摘要存储，跨会话
-    3. semantic: 长期事实/知识，高持久性
-    4. procedural: 成功模式，高重要性
+    四层记忆架构，每层有独立实现：
+    1. working (WorkingMemory): FIFO 队列，快速读写，会话级
+    2. episodic (EpisodicMemory): 对话摘要，按会话分组，时间衰减
+    3. semantic (SemanticMemory): 长期事实/知识，冲突检测，高持久性
+    4. procedural (ProceduralMemory): 成功模式，标签分类，强化学习
 
     存储策略：
-    - working → 内存列表（快速）
-    - 其他层 → ChromaDB 或其他向量数据库（Phase 3 实现）
+    - 每层独立管理自己的存储和淘汰策略
     - 当前阶段使用内存结构，后续可无缝切换后端
+    - 通过 BaseMemory 接口统一对外暴露
     """
 
-    def __init__(self):
-        self._stores: dict[str, list[MemoryEntry]] = {
+    def __init__(
+        self,
+        working_max_entries: int = 50,
+        episodic_max_entries: int = 1000,
+        semantic_max_entries: int = 5000,
+        procedural_max_entries: int = 500,
+    ):
+        self._working = WorkingMemory(max_entries=working_max_entries)
+        self._episodic = EpisodicMemory(max_entries=episodic_max_entries)
+        self._semantic = SemanticMemory(max_entries=semantic_max_entries)
+        self._procedural = ProceduralMemory(max_entries=procedural_max_entries)
+
+        # 层名到层实例的映射
+        self._layers: dict[
+            str, WorkingMemory | EpisodicMemory | SemanticMemory | ProceduralMemory
+        ] = {
+            "working": self._working,
+            "episodic": self._episodic,
+            "semantic": self._semantic,
+            "procedural": self._procedural,
+        }
+
+        # 兼容旧接口的 stores 视图
+        self._stores: dict[str, list] = {
             "working": [],
             "episodic": [],
             "semantic": [],
             "procedural": [],
         }
 
+    # ---- 层访问器 ----
+
+    @property
+    def working(self) -> WorkingMemory:
+        """工作记忆层"""
+        return self._working
+
+    @property
+    def episodic(self) -> EpisodicMemory:
+        """情景记忆层"""
+        return self._episodic
+
+    @property
+    def semantic(self) -> SemanticMemory:
+        """语义记忆层"""
+        return self._semantic
+
+    @property
+    def procedural(self) -> ProceduralMemory:
+        """程序记忆层"""
+        return self._procedural
+
+    def _get_layer(self, layer_name: str):
+        """获取指定名称的层实例"""
+        layer = self._layers.get(layer_name)
+        if layer is None:
+            raise ValueError(f"Unknown memory layer: {layer_name}")
+        return layer
+
     async def write(self, entry: MemoryEntry) -> str:
-        """写入一条记忆"""
-        if entry.layer.value not in self._stores:
-            raise ValueError(f"Unknown memory layer: {entry.layer.value}")
-        self._stores[entry.layer.value].append(entry)
-        logger.debug(f"Memory written: [{entry.layer.value}] {entry.content[:100]}...")
-        return entry.id
+        """写入一条记忆
+
+        根据 entry.layer 自动路由到对应的记忆层。
+        """
+        layer = self._get_layer(entry.layer.value)
+        return layer.write(entry)
 
     async def read(self, query: MemoryQuery) -> list[MemoryEntry]:
-        """按条件读取记忆"""
+        """按条件读取记忆
+
+        可以限定单一层或跨所有层查询。
+        """
+        if query.layer:
+            layer = self._get_layer(query.layer.value)
+            return layer.read(query)
+
+        # 跨所有层查询
         results = []
+        for layer in self._layers.values():
+            results.extend(layer.read(query))
 
-        layers = [query.layer.value] if query.layer else list(self._stores.keys())
-        for layer in layers:
-            store = self._stores.get(layer, [])
-            for entry in store:
-                if query.min_importance and entry.importance < query.min_importance:
-                    continue
-                if query.tags and not any(t in entry.tags for t in query.tags):
-                    continue
-                results.append(entry)
-
-        # 按重要性 + 最近访问时间排序
+        # 按重要性排序
         results.sort(key=lambda e: (e.importance, e.last_accessed_at), reverse=True)
-        return results[:query.limit]
+        return results[: query.limit]
 
-    async def search(self, query: str, top_k: int = 5, layer: str | None = None) -> list[MemoryEntry]:
+    async def search(
+        self, query: str, top_k: int = 5, layer: str | None = None
+    ) -> list[MemoryEntry]:
         """
-        语义搜索 (当前使用简单关键词匹配，Phase 3 替换为向量搜索)
+        语义搜索记忆
+
+        委托给各层实现，跨层聚合结果。
         """
-        query_lower = query.lower()
-        scored: list[tuple[float, MemoryEntry]] = []
+        if layer:
+            layer_instance = self._get_layer(layer)
+            return layer_instance.search(query, top_k)
 
-        layers = [layer] if layer else list(self._stores.keys())
-        for lname in layers:
-            for entry in self._stores.get(lname, []):
-                score = 0.0
-                content_lower = entry.content.lower()
-                # 简单关键词匹配
-                for word in query_lower.split():
-                    if word in content_lower:
-                        score += 1.0
-                # 标签匹配加分
-                for tag in entry.tags:
-                    if tag.lower() in query_lower:
-                        score += 2.0
-                if score > 0:
-                    scored.append((score, entry))
+        # 跨所有层搜索并聚合
+        all_results: list[tuple[float, MemoryEntry]] = []
+        for layer_name, layer_instance in self._layers.items():
+            layer_results = layer_instance.search(query, top_k)
+            # 重新打分以跨层比较
+            for i, entry in enumerate(layer_results):
+                # 越靠前的结果分数越高
+                layer_weight = {
+                    "working": 1.2,  # 工作记忆最相关
+                    "episodic": 0.9,
+                    "semantic": 0.8,
+                    "procedural": 1.0,
+                }.get(layer_name, 1.0)
+                score = (top_k - i) * layer_weight
+                all_results.append((score, entry))
 
-        scored.sort(key=lambda x: x[0], reverse=True)
-        return [entry for _, entry in scored[:top_k]]
+        all_results.sort(key=lambda x: x[0], reverse=True)
+        return [entry for _, entry in all_results[:top_k]]
 
     async def update(self, entry_id: str, updates: dict) -> MemoryEntry | None:
-        for store in self._stores.values():
-            for i, entry in enumerate(store):
-                if entry.id == entry_id:
-                    # 使用新值创建更新后的条目
+        """更新记忆条目"""
+        for layer in self._layers.values():
+            if entry_id in getattr(layer, "_entries", {}):
+                entry = layer._entries.get(entry_id)
+                if entry:
                     updated_data = entry.model_dump()
                     updated_data.update(updates)
                     updated_data["last_accessed_at"] = utc_now()
                     new_entry = MemoryEntry(**updated_data)
-                    store[i] = new_entry
+                    layer._entries[entry_id] = new_entry
                     return new_entry
         return None
 
     async def forget(self, entry_id: str) -> bool:
-        for store in self._stores.values():
-            for i, entry in enumerate(store):
-                if entry.id == entry_id:
-                    store.pop(i)
-                    return True
-        return False
+        """删除一条记忆"""
+        return any(layer.forget(entry_id) for layer in self._layers.values())
 
     async def collect_garbage(self) -> int:
-        """垃圾回收"""
-        removed = 0
-        now = utc_now()
+        """垃圾回收：清理所有层的过期和低质量记忆"""
+        total_removed = 0
+        for _, layer in self._layers.items():
+            removed = layer.collect_garbage()
+            total_removed += removed
 
-        for layer_name, store in list(self._stores.items()):
-            kept = []
-            for entry in store:
-                # TTL 过期检查
-                age = (now - entry.created_at).total_seconds()
-                if age > entry.ttl_seconds:
-                    removed += 1
-                    continue
-                # 低重要性 + 低访问量 清理
-                if entry.importance < 0.2 and entry.access_count < 2:
-                    age_days = age / 86400
-                    if age_days > 7:  # 一周以上
-                        removed += 1
-                        continue
-                kept.append(entry)
-            self._stores[layer_name] = kept
-
-        logger.info(f"Memory GC: removed {removed} entries")
-        return removed
+        logger.info(f"Memory GC: 总计移除 {total_removed} 条")
+        return total_removed
 
     async def summarize_episode(
         self, session_id: str, messages: list, importance: float = 0.5
     ) -> str:
-        """将消息历史总结为情景记忆"""
-        # 简单实现：拼接消息内容作为摘要
-        # Phase 3 会用 LLM 生成更好的摘要
-        summary_parts = []
-        for msg in messages[-10:]:  # 取最近 10 条
-            if hasattr(msg, "content"):
-                summary_parts.append(msg.content[:100])
-            elif isinstance(msg, dict):
-                summary_parts.append(str(msg.get("content", ""))[:100])
+        """将消息历史总结为情景记忆
 
-        summary = " | ".join(summary_parts)
-        entry = MemoryEntry(
-            layer=MemoryLayer.EPISODIC,
-            content=summary[:500],
-            importance=importance,
-            tags=[f"session:{session_id}"],
-            ttl_seconds=86400 * 30,  # 30 天
-        )
-        return await self.write(entry)
+        委托给情景记忆层进行摘要。
+        """
+        return self._episodic.summarize_session(session_id, messages, importance)
+
+    # ---- 扩展方法 ----
+
+    def get_session_episodes(self, session_id: str) -> list[MemoryEntry]:
+        """获取指定会话的情景记忆"""
+        return self._episodic.get_by_session(session_id)
+
+    def get_procedural_patterns(self, pattern_type: str) -> list[MemoryEntry]:
+        """获取指定类型的程序记忆模式"""
+        return self._procedural.get_by_pattern_type(pattern_type)
+
+    def get_semantic_facts(self, top_k: int = 10) -> list[MemoryEntry]:
+        """获取最重要的语义记忆"""
+        return self._semantic.get_facts(top_k)
+
+    def reinforce_pattern(self, entry_id: str, success: bool = True) -> bool:
+        """强化或弱化一个程序记忆模式"""
+        return self._procedural.reinforce(entry_id, success)
+
+    def extract_procedural_pattern(
+        self,
+        content: str,
+        pattern_type: str,
+        tags: list[str] | None = None,
+        importance: float = 0.6,
+    ) -> str:
+        """从经验中提取程序记忆模式"""
+        return self._procedural.extract_pattern(content, pattern_type, tags, importance)

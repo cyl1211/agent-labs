@@ -5,7 +5,8 @@ Anthropic (Claude) 模型提供商适配器
 from __future__ import annotations
 
 import logging
-from typing import Any, AsyncIterator
+from collections.abc import AsyncIterator
+from typing import Any
 
 from anthropic import AsyncAnthropic
 
@@ -38,19 +39,26 @@ class AnthropicProvider(BaseModelProvider):
             if role == "system":
                 converted.append({"role": "user", "content": f"<system>{content}</system>"})
             elif role == "tool":
-                converted.append({
-                    "role": "user",
-                    "content": f"<tool_result name=\"{msg.get('tool_name', '')}\">{content}</tool_result>",
-                })
+                converted.append(
+                    {
+                        "role": "user",
+                        "content": (
+                            f'<tool_result name="{msg.get("tool_name", "")}">'
+                            f"{content}</tool_result>"
+                        ),
+                    }
+                )
             elif role == "assistant" and msg.get("tool_calls"):
                 tool_blocks = []
                 for tc in msg["tool_calls"]:
-                    tool_blocks.append({
-                        "type": "tool_use",
-                        "id": tc.get("id", ""),
-                        "name": tc.get("name", ""),
-                        "input": tc.get("args", {}),
-                    })
+                    tool_blocks.append(
+                        {
+                            "type": "tool_use",
+                            "id": tc.get("id", ""),
+                            "name": tc.get("name", ""),
+                            "input": tc.get("args", {}),
+                        }
+                    )
                 converted.append({"role": "assistant", "content": tool_blocks})
             else:
                 converted.append({"role": role, "content": content})
@@ -60,11 +68,13 @@ class AnthropicProvider(BaseModelProvider):
         """将通用工具格式转换为 Anthropic 格式"""
         converted = []
         for tool in tools:
-            converted.append({
-                "name": tool.get("name", ""),
-                "description": tool.get("description", ""),
-                "input_schema": tool.get("parameters", {}),
-            })
+            converted.append(
+                {
+                    "name": tool.get("name", ""),
+                    "description": tool.get("description", ""),
+                    "input_schema": tool.get("parameters", {}),
+                }
+            )
         return converted
 
     async def chat(
@@ -96,11 +106,13 @@ class AnthropicProvider(BaseModelProvider):
                 if block.type == "text":
                     text_parts.append(block.text)
                 elif block.type == "tool_use":
-                    tool_calls.append({
-                        "id": block.id,
-                        "name": block.name,
-                        "args": block.input,
-                    })
+                    tool_calls.append(
+                        {
+                            "id": block.id,
+                            "name": block.name,
+                            "args": block.input,
+                        }
+                    )
 
             return {
                 "role": "assistant",
@@ -149,13 +161,12 @@ class AnthropicProvider(BaseModelProvider):
                                 "name": event.content_block.name,
                                 "id": event.content_block.id,
                             }
-                    elif event.type == "message_delta":
-                        if event.usage:
-                            yield {
-                                "type": "usage",
-                                "input_tokens": event.usage.input_tokens or 0,
-                                "output_tokens": event.usage.output_tokens or 0,
-                            }
+                    elif event.type == "message_delta" and event.usage:
+                        yield {
+                            "type": "usage",
+                            "input_tokens": event.usage.input_tokens or 0,
+                            "output_tokens": event.usage.output_tokens or 0,
+                        }
         except Exception as e:
             logger.error(f"Anthropic stream error: {e}")
             yield {"type": "error", "message": str(e)}

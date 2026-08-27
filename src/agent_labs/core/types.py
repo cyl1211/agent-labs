@@ -7,16 +7,16 @@ Agent-Labs 核心类型定义
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
 # ============================================================================
 # ID 类型
 # ============================================================================
+
 
 def new_id() -> str:
     """生成唯一 ID"""
@@ -25,15 +25,17 @@ def new_id() -> str:
 
 def utc_now() -> datetime:
     """获取 UTC 时间"""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 # ============================================================================
 # 角色定义
 # ============================================================================
 
-class Role(str, Enum):
+
+class Role(StrEnum):
     """消息角色"""
+
     SYSTEM = "system"
     USER = "user"
     ASSISTANT = "assistant"
@@ -44,8 +46,10 @@ class Role(str, Enum):
 # 消息类型
 # ============================================================================
 
+
 class Message(BaseModel):
     """对话消息"""
+
     model_config = ConfigDict(frozen=True)
 
     id: str = Field(default_factory=new_id)
@@ -61,8 +65,10 @@ class Message(BaseModel):
 # Agent 输入/输出
 # ============================================================================
 
+
 class AgentInput(BaseModel):
     """Agent 输入"""
+
     query: str
     session_id: str | None = None
     user_id: str | None = None
@@ -72,6 +78,7 @@ class AgentInput(BaseModel):
 
 class AgentOutput(BaseModel):
     """Agent 输出"""
+
     session_id: str
     answer: str
     tool_calls_made: list[dict[str, Any]] = Field(default_factory=list)
@@ -83,6 +90,7 @@ class AgentOutput(BaseModel):
 
 class AgentEvent(BaseModel):
     """Agent 流式事件"""
+
     event_type: Literal["thinking", "tool_call", "tool_result", "answer", "error", "human_approval"]
     data: dict[str, Any]
     timestamp: datetime = Field(default_factory=utc_now)
@@ -92,8 +100,10 @@ class AgentEvent(BaseModel):
 # Agent 上下文 (注入 Agent 的只读视图)
 # ============================================================================
 
+
 class AgentContext(BaseModel):
     """Agent 执行上下文 - 注入 session + memory 的只读视图"""
+
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     session_id: str
@@ -102,14 +112,17 @@ class AgentContext(BaseModel):
     memories: list[MemoryEntry] = Field(default_factory=list)
     config: dict[str, Any] = Field(default_factory=dict)
     permissions: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 # ============================================================================
 # Session 类型
 # ============================================================================
 
-class SessionStatus(str, Enum):
+
+class SessionStatus(StrEnum):
     """会话状态"""
+
     ACTIVE = "active"
     WAITING_APPROVAL = "waiting_approval"
     COMPLETED = "completed"
@@ -119,6 +132,7 @@ class SessionStatus(str, Enum):
 
 class SessionConfig(BaseModel):
     """会话配置"""
+
     agent_type: str = "react"
     model_id: str | None = None
     max_iterations: int = 25
@@ -128,6 +142,7 @@ class SessionConfig(BaseModel):
 
 class SessionState(BaseModel):
     """会话运行时状态"""
+
     session_id: str
     agent_id: str
     status: SessionStatus = SessionStatus.ACTIVE
@@ -146,16 +161,19 @@ class SessionState(BaseModel):
 # Memory 类型
 # ============================================================================
 
-class MemoryLayer(str, Enum):
+
+class MemoryLayer(StrEnum):
     """记忆层级"""
-    WORKING = "working"       # 当前会话上下文
-    EPISODIC = "episodic"     # 历史对话摘要
-    SEMANTIC = "semantic"     # 长期知识/事实
-    PROCEDURAL = "procedural" # 成功模式/经验
+
+    WORKING = "working"  # 当前会话上下文
+    EPISODIC = "episodic"  # 历史对话摘要
+    SEMANTIC = "semantic"  # 长期知识/事实
+    PROCEDURAL = "procedural"  # 成功模式/经验
 
 
 class MemoryEntry(BaseModel):
     """记忆条目"""
+
     model_config = ConfigDict(frozen=True)
 
     id: str = Field(default_factory=new_id)
@@ -173,6 +191,7 @@ class MemoryEntry(BaseModel):
 
 class MemoryQuery(BaseModel):
     """记忆查询"""
+
     layer: MemoryLayer | None = None
     tags: list[str] | None = None
     limit: int = 10
@@ -183,8 +202,10 @@ class MemoryQuery(BaseModel):
 # Tool 类型
 # ============================================================================
 
+
 class ToolResult(BaseModel):
     """工具执行结果"""
+
     success: bool
     content: str
     error: str | None = None
@@ -196,8 +217,10 @@ class ToolResult(BaseModel):
 # Skill 类型
 # ============================================================================
 
+
 class SkillContext(BaseModel):
     """技能执行上下文"""
+
     session_id: str
     agent_context: AgentContext | None = None
     tool_results: dict[str, ToolResult] = Field(default_factory=dict)
@@ -206,6 +229,7 @@ class SkillContext(BaseModel):
 
 class SkillResult(BaseModel):
     """技能执行结果"""
+
     success: bool
     content: str
     error: str | None = None
@@ -217,8 +241,10 @@ class SkillResult(BaseModel):
 # 权限类型
 # ============================================================================
 
-class Permission(str, Enum):
+
+class Permission(StrEnum):
     """操作权限"""
+
     READ = "read"
     WRITE = "write"
     EXECUTE = "execute"
@@ -228,8 +254,10 @@ class Permission(str, Enum):
 # 通知类型
 # ============================================================================
 
-class NotificationLevel(str, Enum):
+
+class NotificationLevel(StrEnum):
     """通知级别"""
+
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"
@@ -238,6 +266,7 @@ class NotificationLevel(str, Enum):
 
 class NotificationEvent(BaseModel):
     """通知事件"""
+
     level: NotificationLevel
     title: str
     message: str

@@ -11,8 +11,8 @@ from agent_labs.tools.base import BaseTool
 from agent_labs.tools.executor import ToolExecutor
 from agent_labs.tools.registry import ToolRegistry
 
-
 # ---- Test Tools ----
+
 
 class EchoTool(BaseTool):
     name = "echo"
@@ -50,6 +50,7 @@ class SlowTool(BaseTool):
 
 # ---- Registry Tests ----
 
+
 class TestToolRegistry:
     def test_register_tool(self):
         registry = ToolRegistry()
@@ -81,6 +82,7 @@ class TestToolRegistry:
 
 
 # ---- Executor Tests ----
+
 
 class TestToolExecutor:
     async def test_execute_success(self):
@@ -134,10 +136,12 @@ class TestToolExecutor:
         registry.register(EchoTool())
         executor = ToolExecutor(registry)
 
-        results = await executor.execute_batch([
-            {"name": "echo", "args": {"message": "first"}},
-            {"name": "echo", "args": {"message": "second"}},
-        ])
+        results = await executor.execute_batch(
+            [
+                {"name": "echo", "args": {"message": "first"}},
+                {"name": "echo", "args": {"message": "second"}},
+            ]
+        )
         assert len(results) == 2
         assert results[0]["name"] == "echo"
         assert results[0]["result"].success

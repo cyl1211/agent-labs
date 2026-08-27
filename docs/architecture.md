@@ -73,8 +73,8 @@ class BaseMemory(ABC):
 | 模式 | 流程 | 适用场景 | 实现状态 |
 |------|------|----------|----------|
 | **ReAct** | decide ⇄ tool → output | 通用任务、需要工具的场景 | ✅ Phase 1 |
-| **Plan-Execute** | plan → [step1, step2, ...] → review | 复杂多步任务 | 🔜 Phase 4 |
-| **Supervisor** | supervisor ⇄ [worker_a, worker_b, ...] | 多 Agent 协作 | 🔜 Phase 4 |
+| **Plan-Execute** | plan → [step1, step2, ...] → review | 复杂多步任务 | ✅ 学习实现 |
+| **Supervisor** | supervisor ⇄ [worker_a, worker_b, ...] | 多 Agent 协作 | ✅ 学习实现 |
 
 ## 数据流
 

@@ -16,6 +16,17 @@
 | DELETE | `/api/v1/sessions/{id}` | 关闭会话 |
 | GET | `/api/v1/tools` | 列出所有工具 |
 | POST | `/api/v1/tools/execute` | 直接执行工具 |
+| GET | `/api/v1/skills` | 列出所有技能 |
+| POST | `/api/v1/skills/execute` | 执行技能 |
+| GET | `/api/v1/observability/traces` | 列出最近追踪 |
+| GET | `/api/v1/observability/traces/{id}` | 获取追踪详情 |
+| GET | `/api/v1/observability/dashboard` | 获取文本仪表板 |
+| GET | `/api/v1/observability/stats` | 获取全局统计 |
+| GET | `/api/v1/observability/stats/sessions/{id}` | 获取会话统计 |
+| GET | `/api/v1/approval/pending` | 列出待审批请求 |
+| POST | `/api/v1/approval/{id}/approve` | 批准请求 |
+| POST | `/api/v1/approval/{id}/reject` | 拒绝请求 |
+| GET | `/api/v1/approval/stats` | 获取审批统计 |
 
 ## POST /api/v1/agents/invoke
 

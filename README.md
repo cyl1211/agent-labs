@@ -62,6 +62,10 @@ agent-labs/
 - **工具系统**: 工具注册、执行重试、超时控制、批量并行
 - **四层记忆**: Working / Episodic / Semantic / Procedural
 - **LangGraph 循环**: ReAct 模式，11 个节点，条件路由
+- **多循环模式**: ReAct、Plan-Execute、Supervisor
+- **上下文与知识**: token 预算、上下文压缩、知识注入、RAG
+- **工程控制**: 人工审批、超时、沙箱、通知、可观测性
+- **扩展能力**: MCP 动态工具发现、长任务分解与检查点、CLI 聊天
 - **跨平台**: Windows / Linux 双平台支持
 
 ## 开发阶段
@@ -69,11 +73,11 @@ agent-labs/
 | 阶段 | 内容 | 状态 |
 |------|------|------|
 | Phase 1 | 项目基础 + 单 Agent 核心 | ✅ |
-| Phase 2 | 工具 + 技能 + 权限系统 | 🔜 |
-| Phase 3 | 记忆系统 + 上下文工程 + RAG | 📋 |
-| Phase 4 | 多 Agent + Human-in-the-Loop + 通知 | 📋 |
-| Phase 5 | MCP + 可观测性 + 长任务 | 📋 |
-| Phase 6 | 安全 + 测试 + 生产加固 | 📋 |
+| Phase 2 | 工具 + 技能 + 权限系统 | ✅ |
+| Phase 3 | 记忆系统 + 上下文工程 + RAG | ✅ |
+| Phase 4 | 多 Agent + Human-in-the-Loop + 通知 | ✅ 学习实现 |
+| Phase 5 | MCP + 可观测性 + 长任务 | ✅ 学习实现 |
+| Phase 6 | 安全 + 测试 + 生产加固 | 🚧 持续完善 |
 
 ## 文档
 
@@ -84,5 +88,7 @@ agent-labs/
 ## 测试
 
 ```bash
-pytest src/agent_labs/tests/ -v
+uv run pytest src/agent_labs/tests/ -q
 ```
+
+当前基线：250 passed，1 skipped（Python 3.12）。

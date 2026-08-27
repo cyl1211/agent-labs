@@ -12,10 +12,11 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, AsyncIterator
+from collections.abc import AsyncIterator
+from typing import Any
 
 from ..config.settings import Settings, get_settings
-from ..core.types import Message, new_id
+from ..core.types import Message
 from .providers.anthropic import AnthropicProvider
 from .providers.base import BaseModelProvider
 from .providers.openai import OpenAIProvider
@@ -45,7 +46,9 @@ class ModelManager:
     def _get_provider(self, provider_name: str) -> BaseModelProvider:
         """获取或初始化提供商实例"""
         if provider_name not in self._providers:
-            provider_config = self.settings.models_config.get("providers", {}).get(provider_name, {})
+            provider_config = self.settings.models_config.get("providers", {}).get(
+                provider_name, {}
+            )
             api_key_env = provider_config.get("api_key_env", "")
             api_key = os.getenv(api_key_env, "")
 
@@ -56,7 +59,9 @@ class ModelManager:
 
             provider_cls = PROVIDER_FACTORY.get(provider_name)
             if not provider_cls:
-                raise ValueError(f"Unknown provider: {provider_name}. Available: {list(PROVIDER_FACTORY)}")
+                raise ValueError(
+                    f"Unknown provider: {provider_name}. Available: {list(PROVIDER_FACTORY)}"
+                )
 
             self._providers[provider_name] = provider_cls(
                 api_key=api_key,
@@ -64,7 +69,9 @@ class ModelManager:
             )
         return self._providers[provider_name]
 
-    def _resolve_model(self, model_id: str | None = None, tier: str | None = None) -> tuple[str, str]:
+    def _resolve_model(
+        self, model_id: str | None = None, tier: str | None = None
+    ) -> tuple[str, str]:
         """
         解析模型 ID
 
@@ -94,7 +101,9 @@ class ModelManager:
 
         # 回退到默认提供商和模型
         default_provider = self.settings.models_config.get("default_provider", "anthropic")
-        default_model = providers.get(default_provider, {}).get("default_model", "claude-sonnet-4-6")
+        default_model = providers.get(default_provider, {}).get(
+            "default_model", "claude-sonnet-4-6"
+        )
         return default_provider, default_model
 
     def get_model_for_agent(self, agent_type: str) -> tuple[str, str]:
@@ -112,7 +121,9 @@ class ModelManager:
         """
         orchestrator_types = {"orchestrator", "supervisor", "planner"}
         if agent_type.lower() in orchestrator_types:
-            tier = self.settings.models_config.get("selection", {}).get("orchestrator_tier", "strong")
+            tier = self.settings.models_config.get("selection", {}).get(
+                "orchestrator_tier", "strong"
+            )
         else:
             tier = self.settings.models_config.get("selection", {}).get("worker_tier", "weak")
         return self._resolve_model(tier=tier)
@@ -144,10 +155,12 @@ class ModelManager:
         normalized_messages = []
         for m in messages:
             if isinstance(m, Message):
-                normalized_messages.append({
-                    "role": m.role.value,
-                    "content": m.content,
-                })
+                normalized_messages.append(
+                    {
+                        "role": m.role.value,
+                        "content": m.content,
+                    }
+                )
             else:
                 normalized_messages.append(m)
 
@@ -198,8 +211,9 @@ class ModelManager:
         ):
             yield chunk
 
-    async def count_tokens(self, messages: list[Message] | list[dict[str, Any]],
-                           model: str | None = None) -> int:
+    async def count_tokens(
+        self, messages: list[Message] | list[dict[str, Any]], model: str | None = None
+    ) -> int:
         """计算消息的 token 数"""
         normalized = []
         for m in messages:
@@ -217,13 +231,15 @@ class ModelManager:
         models = []
         for pname, pconfig in self.settings.models_config.get("providers", {}).items():
             for model in pconfig.get("models", []):
-                models.append({
-                    "provider": pname,
-                    "id": model["id"],
-                    "display_name": model.get("display_name", model["id"]),
-                    "tier": model.get("tier", "unknown"),
-                    "max_tokens": model.get("max_tokens", 0),
-                })
+                models.append(
+                    {
+                        "provider": pname,
+                        "id": model["id"],
+                        "display_name": model.get("display_name", model["id"]),
+                        "tier": model.get("tier", "unknown"),
+                        "max_tokens": model.get("max_tokens", 0),
+                    }
+                )
         return models
 
     def check_model_permission(self, model_id: str, user_roles: list[str]) -> bool:
